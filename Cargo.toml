@@ -1,5 +1,10 @@
 [package]
 name = "disk-spinner"
+description = "A burn-in tool for spinning rust HDDs"
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/boinkor-net/disk-spinner"
+authors = ["Andreas Fuchs <asf@boinkor.net>"]
 version = "0.1.0"
 edition = "2021"
 
