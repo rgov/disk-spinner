@@ -35,7 +35,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           version: ${{ inputs.version }}
           check-semver: true
-          crate-release-all: true # all in workspace
+          crate-release-all: false # all in workspace
       - uses: actions-ecosystem/action-regex-match@v2
         id: pr-id
         with:
