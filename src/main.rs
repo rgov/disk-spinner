@@ -4,6 +4,7 @@ use anyhow::Context;
 use clap::Parser;
 use indicatif::ProgressStyle;
 use rand::prelude::*;
+use rand::rng;
 use rayon::iter::Either;
 use rayon::prelude::*;
 use tracing::error;
@@ -74,7 +75,7 @@ fn main() -> anyhow::Result<()> {
         .with(indicatif_layer)
         .init();
     let args = Args::parse();
-    let seed = args.seed.unwrap_or_else(|| thread_rng().gen());
+    let seed = args.seed.unwrap_or_else(|| rng().random());
     let (_, failed) = args.devices.clone().into_par_iter().map(|device| {
         let ValidDevice {
             device,
