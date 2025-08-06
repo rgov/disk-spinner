@@ -68,8 +68,7 @@ pub(crate) struct Args {
 }
 
 fn main() -> anyhow::Result<()> {
-    let indicatif_layer = IndicatifLayer::new()
-        .with_max_progress_bars(128, None);
+    let indicatif_layer = IndicatifLayer::new().with_max_progress_bars(128, None);
     tracing_subscriber::registry()
         .with(tracing_subscriber::fmt::layer().with_writer(indicatif_layer.get_stderr_writer()))
         .with(indicatif_layer)
@@ -106,7 +105,7 @@ fn main() -> anyhow::Result<()> {
             }
         }
     }).collect::<anyhow::Result<(Vec<()>, Vec<PathBuf>)>>()?;
-    if failed.len() > 0 {
+    if !failed.is_empty() {
         error!(devices=?failed, "Devices have failed validation. You should return them.");
         anyhow::bail!("Tests not successful.");
     }

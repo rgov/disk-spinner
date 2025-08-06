@@ -15,7 +15,7 @@ pub(crate) fn write(dev_path: &Path, buffer_size: usize, seed: u64) -> anyhow::R
     let mut out = OpenOptions::new()
         .write(true)
         .open(dev_path)
-        .with_context(|| format!("Opening the device {:?} for writing", dev_path))?;
+        .with_context(|| format!("Opening the device {dev_path:?} for writing"))?;
     let capacity = out.seek(io::SeekFrom::End(0))?;
     out.seek(io::SeekFrom::Start(0))?;
 
