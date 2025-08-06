@@ -21,7 +21,7 @@ pub(crate) fn read_back(
     let mut blockdev = OpenOptions::new()
         .read(true)
         .open(dev_path)
-        .with_context(|| format!("Opening the device {:?} for reading", dev_path))?;
+        .with_context(|| format!("Opening the device {dev_path:?} for reading"))?;
     let capacity = blockdev.seek(io::SeekFrom::End(0))?;
     blockdev.seek(io::SeekFrom::Start(0))?;
 
@@ -62,11 +62,10 @@ impl<R: io::Read> CompareWriter<R> {
 
 impl<R: io::Read> io::Write for CompareWriter<R> {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        let mut read = Vec::with_capacity(buf.len());
-        read.resize(buf.len(), 0);
+        let mut read = vec![0; buf.len()];
         self.compare.read_exact(&mut read)?;
         self.current_offset += buf.len();
-        if &read != buf {
+        if read != buf {
             warn!(
                 offset = self.current_offset,
                 "Did not read back the exact bytes written"

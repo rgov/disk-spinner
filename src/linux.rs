@@ -62,8 +62,8 @@ pub(crate) fn sanity_checks(
         })
         .collect();
 
-    if child_partitions.len() > 0 {
-        anyhow::bail!("Detected child partitions on the device - I won't help you destroy an in-use drive: Delete those partitions yourself. Partitions found: {:?}", child_partitions);
+    if !child_partitions.is_empty() {
+        anyhow::bail!("Detected child partitions on the device - I won't help you destroy an in-use drive: Delete those partitions yourself. Partitions found: {child_partitions:?}", );
     }
     Ok(())
 }

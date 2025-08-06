@@ -17,7 +17,7 @@ jobs:
           rust_toolchain: ${{matrix.rust_toolchain}}
           cargo_test_args: ${{matrix.cargo_test_args}}
           manifest_dir: .
-          apt_install_packages: ""
+          apt_install_packages: "libudev-dev"
 
   rust_fmt:
     runs-on: ubuntu-latest
@@ -35,7 +35,7 @@ jobs:
       - uses: boinkor-net/ci-baseline-rust/actions/clippy@main
         with:
           manifest_dir: .
-          apt_install_packages: ""
+          apt_install_packages: "libudev-dev"
 
   cargo_deny:
     runs-on: ubuntu-latest
