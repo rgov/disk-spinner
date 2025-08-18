@@ -10,6 +10,8 @@ Hence, this tool: disk-spinner.
 
 It destructively writes blocks of random data  to an entire disk device (or, optionally, just a partition; but you'll probably want the whole drive), then verifies that the data matches what's been written.
 
+Using Rayon, it creates a number of testing threads equal to the number of cores your system has. If you would like to override this for whatever reason, the `RAYON_NUM_THREADS` environment variable will take precedence over that check.
+
 If any data could not be read exactly as written, it informs you in big letters. That means your disk is bad & you should make use of your vendor's RMA policy. Doesn't it feel great to not run into problems?
 
 ## Platform support
