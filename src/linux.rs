@@ -1,69 +1,43 @@
-extern crate block_utils;
-use crate::Args;
-use std::{
-    path::{Path, PathBuf},
-    str::FromStr,
-};
-use tracing::warn;
+#[cfg(target_os = "linux")]
+mod platform_specific;
+use std::path::PathBuf;
 
-#[derive(Debug, Clone)]
-pub(crate) struct ValidDevice {
-    pub path: PathBuf,
-    pub partition: Option<u64>,
-    pub device: block_utils::Device,
-}
+#[cfg(target_os = "linux")]
+pub(crate) use platform_specific::*;
 
-impl FromStr for ValidDevice {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let (partition, device) = block_utils::get_device_from_path(s)?;
-        Ok(Self {
-            path: PathBuf::from(s),
-            partition,
-            device: device.ok_or(anyhow::anyhow!(
-                "The device under test must be a valid block device."
-            ))?,
-        })
-    }
-}
-
-pub(crate) fn sanity_checks(
-    args: &Args,
-    partition: Option<u64>,
-    device_path: &Path,
-    device: &block_utils::Device,
-) -> anyhow::Result<()> {
-    // Sanity checks:
-    if partition.is_some() {
-        if !args.allow_any_block_device {
-            anyhow::bail!("Device is not a whole disk but a partition - pass --allow-any-block-device to run tests anyway.");
-        } else {
-            warn!(
-                ?partition,
-                ?device_path,
-                "Testing a partition but running tests anyway."
-            );
-        }
-    }
-    if device.media_type != block_utils::MediaType::Rotational {
-        if !args.allow_any_media {
-            anyhow::bail!("Device is not a rotational disk - this tool may be harmful to solid-state drives and others! Pass --allow-any-media to run anyway.");
-        } else {
-            warn!(?device.media_type, ?device_path, "Media type is not as expected but running tests anyway.");
-        }
-    }
-    let child_partitions: Vec<PathBuf> = block_utils::get_block_partitions_iter()?
+#[cfg_attr(not(target_os = "linux"), allow(dead_code))]
+fn child_partitions(
+    device_name: &str,
+    block_partitions: impl Iterator<Item = PathBuf>,
+) -> Vec<PathBuf> {
+    block_partitions
         .filter(|part_path| {
             part_path
                 .file_name()
-                .map(|name| name.to_string_lossy().starts_with(&device.name))
+                .and_then(|name| {
+                    name.to_string_lossy()
+                        .strip_prefix(device_name)
+                        .unwrap_or_default()
+                        .parse::<usize>()
+                        .ok()
+                        .map(|_| true)
+                })
                 .unwrap_or(false)
         })
-        .collect();
+        .collect()
+}
 
-    if !child_partitions.is_empty() {
-        anyhow::bail!("Detected child partitions on the device - I won't help you destroy an in-use drive: Delete those partitions yourself. Partitions found: {child_partitions:?}", );
+#[cfg(test)]
+mod test {
+    use super::*;
+    use test_case::test_case;
+
+    #[test_case("sda", &["/dev/sdb1", "/dev/sda1"], &["/dev/sda1"]; "a normal partition of the given device")]
+    #[test_case("sda", &["/dev/sdb1"], &[]; "no-partitions")]
+    #[test_case("sda", &["/dev/sda", "/dev/sdb", "/dev/sdai"], &[]; "block devices above 26 are present")]
+    fn detects_child_partitions(dev: &str, existing: &[&str], should: &[&str]) {
+        let detected = child_partitions(dev, existing.iter().map(PathBuf::from));
+        let should: Vec<PathBuf> = should.iter().map(PathBuf::from).collect();
+        assert_eq!(detected, should);
     }
-    Ok(())
 }

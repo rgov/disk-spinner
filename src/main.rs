@@ -20,7 +20,6 @@ mod crypto;
 mod read_test;
 mod write_test;
 
-#[cfg(target_os = "linux")]
 mod linux;
 #[cfg(target_os = "linux")]
 use linux::sanity_checks;
