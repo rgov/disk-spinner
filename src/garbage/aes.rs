@@ -16,9 +16,11 @@ pub(crate) struct AesGenerator {
     progress: Box<dyn Fn(u64)>,
 }
 
-impl GarbageGenerator for AesGenerator {
-    /// Generate a new garbage generator for a block size from a random seed.
-    fn new(block_size: usize, seed: u64, progress: Box<dyn Fn(u64)>) -> Self {
+impl GarbageGenerator for AesGenerator {}
+
+impl AesGenerator {
+    /// Generate a new AES garbage generator for a block size from a random seed.
+    pub(super) fn new(block_size: usize, seed: u64, progress: Box<dyn Fn(u64)>) -> Self {
         let buf = vec![0; block_size];
 
         let mut rng = ChaCha8Rng::seed_from_u64(seed);

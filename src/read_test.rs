@@ -15,7 +15,7 @@ type FailedReads = usize;
 #[tracing::instrument(skip(generator))]
 pub(crate) fn read_back(
     dev_path: &Path,
-    generator: impl GarbageGenerator,
+    generator: Box<dyn GarbageGenerator>,
 ) -> anyhow::Result<Result<(), FailedReads>> {
     let mut blockdev = OpenOptions::new()
         .read(true)

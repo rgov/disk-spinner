@@ -11,7 +11,7 @@ use tracing::info_span;
 use tracing_indicatif::span_ext::IndicatifSpanExt;
 
 #[tracing::instrument(skip(generator))]
-pub(crate) fn write(dev_path: &Path, generator: impl GarbageGenerator) -> anyhow::Result<()> {
+pub(crate) fn write(dev_path: &Path, generator: Box<dyn GarbageGenerator>) -> anyhow::Result<()> {
     let mut out = OpenOptions::new()
         .write(true)
         .open(dev_path)
