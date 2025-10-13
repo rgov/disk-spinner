@@ -1,22 +1,21 @@
 //! Running the "read back" portion of the test.
 
-use crate::{crypto::GarbageGenerator, PROGRESS_STYLE};
+use crate::{garbage::GarbageGenerator, PROGRESS_STYLE};
 use anyhow::Context;
 use std::{
     fs::OpenOptions,
     io::{self, BufReader, Seek},
     path::Path,
 };
-use tracing::{info_span, warn, Span};
+use tracing::{info_span, warn};
 use tracing_indicatif::span_ext::IndicatifSpanExt;
 
 type FailedReads = usize;
 
-#[tracing::instrument(skip(buffer_size, seed))]
+#[tracing::instrument(skip(generator))]
 pub(crate) fn read_back(
     dev_path: &Path,
-    buffer_size: usize,
-    seed: u64,
+    generator: impl GarbageGenerator,
 ) -> anyhow::Result<Result<(), FailedReads>> {
     let mut blockdev = OpenOptions::new()
         .read(true)
@@ -30,9 +29,6 @@ pub(crate) fn read_back(
     bar_span.pb_set_length(capacity);
     let _bar_span_handle = bar_span.enter();
 
-    let generator = GarbageGenerator::new(buffer_size, seed, |read| {
-        Span::current().pb_inc(read);
-    });
     let generator = BufReader::new(generator);
     let mut compare = CompareWriter::new(generator);
     io::copy(&mut blockdev, &mut compare)?;

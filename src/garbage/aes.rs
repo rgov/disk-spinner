@@ -5,19 +5,20 @@ use rand::prelude::*;
 use rand_chacha::ChaCha8Rng;
 use std::io;
 
+use super::GarbageGenerator;
+
 type ActiveCipher = ctr::Ctr128LE<aes::Aes128>;
 
 /// A generator for deterministically random-looking garbage data.
-#[derive(Clone)]
-pub(crate) struct GarbageGenerator<P: Fn(u64)> {
+pub(crate) struct AesGenerator {
     buf: Vec<u8>,
     cipher: ActiveCipher,
-    progress: P,
+    progress: Box<dyn Fn(u64)>,
 }
 
-impl<P: Fn(u64)> GarbageGenerator<P> {
+impl GarbageGenerator for AesGenerator {
     /// Generate a new garbage generator for a block size from a random seed.
-    pub(crate) fn new(block_size: usize, seed: u64, progress: P) -> Self {
+    fn new(block_size: usize, seed: u64, progress: Box<dyn Fn(u64)>) -> Self {
         let buf = vec![0; block_size];
 
         let mut rng = ChaCha8Rng::seed_from_u64(seed);
@@ -37,7 +38,7 @@ impl<P: Fn(u64)> GarbageGenerator<P> {
 
 /// GarbageGenerator implements Read in order to supply the write test
 /// with random data that can be copied to disk.
-impl<P: Fn(u64)> io::Read for GarbageGenerator<P> {
+impl io::Read for AesGenerator {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         let mut done = 0;
         for chunk in buf.chunks_exact_mut(self.buf.len()) {
