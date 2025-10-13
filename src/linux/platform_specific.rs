@@ -1,4 +1,5 @@
 extern crate block_utils;
+use super::child_partitions;
 use crate::Args;
 use std::{
     path::{Path, PathBuf},
@@ -53,14 +54,8 @@ pub(crate) fn sanity_checks(
             warn!(?device.media_type, ?device_path, "Media type is not as expected but running tests anyway.");
         }
     }
-    let child_partitions: Vec<PathBuf> = block_utils::get_block_partitions_iter()?
-        .filter(|part_path| {
-            part_path
-                .file_name()
-                .map(|name| name.to_string_lossy().starts_with(&device.name))
-                .unwrap_or(false)
-        })
-        .collect();
+    let child_partitions =
+        child_partitions(&device.name, block_utils::get_block_partitions_iter()?);
 
     if !child_partitions.is_empty() {
         anyhow::bail!("Detected child partitions on the device - I won't help you destroy an in-use drive: Delete those partitions yourself. Partitions found: {child_partitions:?}", );
