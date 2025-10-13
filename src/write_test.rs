@@ -1,10 +1,11 @@
 //! Running the "write" portion of the test.
 
-use crate::{garbage::GarbageGenerator, PROGRESS_STYLE};
+use crate::{garbage::GarbageGenerator, OPEN_FLAGS, PROGRESS_STYLE};
 use anyhow::Context;
+use std::os::unix::fs::OpenOptionsExt as _;
 use std::{
     fs::OpenOptions,
-    io::{self, BufReader, Seek},
+    io::{self, BufReader},
     path::Path,
 };
 use tracing::info_span;
@@ -12,12 +13,12 @@ use tracing_indicatif::span_ext::IndicatifSpanExt;
 
 #[tracing::instrument(skip(generator))]
 pub(crate) fn write(dev_path: &Path, generator: Box<dyn GarbageGenerator>) -> anyhow::Result<()> {
+    let capacity = crate::determine_size(dev_path)?;
     let mut out = OpenOptions::new()
         .write(true)
+        .custom_flags(OPEN_FLAGS)
         .open(dev_path)
         .with_context(|| format!("Opening the device {dev_path:?} for writing"))?;
-    let capacity = out.seek(io::SeekFrom::End(0))?;
-    out.seek(io::SeekFrom::Start(0))?;
 
     let bar_span = info_span!("writing");
     bar_span.pb_set_style(&PROGRESS_STYLE);

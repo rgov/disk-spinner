@@ -1,10 +1,11 @@
 //! Running the "read back" portion of the test.
 
-use crate::{garbage::GarbageGenerator, PROGRESS_STYLE};
+use crate::{garbage::GarbageGenerator, OPEN_FLAGS, PROGRESS_STYLE};
 use anyhow::Context;
 use std::{
     fs::OpenOptions,
-    io::{self, BufReader, Seek},
+    io::{self, BufReader},
+    os::unix::fs::OpenOptionsExt as _,
     path::Path,
 };
 use tracing::{info_span, warn};
@@ -17,12 +18,12 @@ pub(crate) fn read_back(
     dev_path: &Path,
     generator: Box<dyn GarbageGenerator>,
 ) -> anyhow::Result<Result<(), FailedReads>> {
+    let capacity = crate::determine_size(dev_path)?;
     let mut blockdev = OpenOptions::new()
         .read(true)
+        .custom_flags(OPEN_FLAGS)
         .open(dev_path)
         .with_context(|| format!("Opening the device {dev_path:?} for reading"))?;
-    let capacity = blockdev.seek(io::SeekFrom::End(0))?;
-    blockdev.seek(io::SeekFrom::Start(0))?;
 
     let bar_span = info_span!("reading back");
     bar_span.pb_set_style(&PROGRESS_STYLE);

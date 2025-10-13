@@ -1,3 +1,7 @@
+use std::fs::OpenOptions;
+use std::io;
+use std::io::Seek as _;
+use std::path::Path;
 use std::path::PathBuf;
 
 use anyhow::Context;
@@ -28,6 +32,8 @@ mod linux;
 use linux::sanity_checks;
 #[cfg(target_os = "linux")]
 use linux::ValidDevice;
+#[cfg(target_os = "linux")]
+use linux::OPEN_FLAGS;
 
 #[cfg(not(target_os = "linux"))]
 mod other_os;
@@ -35,6 +41,8 @@ mod other_os;
 use other_os::sanity_checks;
 #[cfg(not(target_os = "linux"))]
 use other_os::ValidDevice;
+#[cfg(not(target_os = "linux"))]
+use other_os::OPEN_FLAGS;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -127,4 +135,13 @@ lazy_static! {
     pub(crate) static ref PROGRESS_STYLE: ProgressStyle = ProgressStyle::with_template(
         "[{elapsed_precise}] {bar:40.white/grey} {bytes}/{total_bytes} ({bytes_per_sec}, ETA {eta_precise}) {msg}",
     ).expect("Internal error in indicatif progress bar template syntax");
+}
+
+/// Open the device at dev_path and determine its size by seeking to the end.
+pub(crate) fn determine_size(dev_path: &Path) -> anyhow::Result<u64> {
+    let mut out = OpenOptions::new()
+        .read(true)
+        .open(dev_path)
+        .with_context(|| format!("Opening the device {dev_path:?} for determining the size"))?;
+    Ok(out.seek(io::SeekFrom::End(0)).context("seeking to end")?)
 }

@@ -5,6 +5,8 @@ use std::{
 
 use crate::Args;
 
+pub const OPEN_FLAGS: i32 = 0;
+
 #[derive(Debug, Clone, Default)]
 pub(crate) struct DeviceMetadata {
     pub physical_block_size: Option<u64>,

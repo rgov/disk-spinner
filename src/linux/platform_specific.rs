@@ -7,6 +7,8 @@ use std::{
 };
 use tracing::warn;
 
+pub const OPEN_FLAGS: i32 = libc::O_DIRECT;
+
 #[derive(Debug, Clone)]
 pub(crate) struct ValidDevice {
     pub path: PathBuf,
