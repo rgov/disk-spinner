@@ -4,14 +4,16 @@ mod shishua;
 use std::{fmt, io::Read, str::FromStr};
 
 /// The method to use for generating deterministic "garbage" data
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub enum GarbageGeneratorVariant {
+    #[cfg_attr(not(feature = "shishua-cli"), default)]
     /// AES, CTR mode with 128-bit little-endian counter.
     Aes,
 
     /// The BLAKE3 cryptographic hash function; slightly faster than AES on Apple Silicon hardware.
     Blake3,
 
+    #[cfg_attr(feature = "shishua-cli", default)]
     #[cfg(feature = "shishua-cli")]
     /// The `shishua` RNG, invoked via the cli tool of the same name.
     ShishuaCli,

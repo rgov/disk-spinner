@@ -52,7 +52,7 @@ pub(crate) struct Args {
     #[clap(long)]
     buffer_size: Option<usize>,
 
-    #[clap(long, default_value = "AES", value_parser = clap::value_parser!(GarbageGeneratorVariant))]
+    #[clap(long, default_value_t, value_parser = clap::value_parser!(GarbageGeneratorVariant))]
     generator: GarbageGeneratorVariant,
 
     /// Random seed to use for generating random data. By default, this tool generates its own.
