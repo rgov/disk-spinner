@@ -20,6 +20,14 @@ This tool is made mainly for linux, but should work on many posix-ish systems; I
 
 The Linux platform is privileged a bit in terms of not only my own platform usage (my NAS running zfs on linux and all that) but also safety checking (we use udev to determine various things about the devices under test and error if they look used or non-mechanical), and terminal UI (I am confident only in Linux's ability to return accurate sizes of the block device being tested).
 
+## Performance
+
+disk-spinner comes with some predictable-garbage generators pre-installed: AES and BLAKE3. On modern CPUs, AES is the more performant of the two (provided your CPU has AES-NI or NEON instructions, which many amd64 and aarch64 CPUs targeted by rust do these days). The AES generator manages about 200-500MB/s of data using one CPU thread, which tends to be enough for testing a few disks at a time. Older CPUs (those lacking the intrinsic instructions that make AES fast) can benefit from the BLAKE3 generator - select it with the `--generator=blake3` CLI flag.
+
+However, if you wish to test many disks (say, 75% the number of your available CPU cores), you will quickly find that even very many CPU cores can't saturate all the disks' IO bandwidth, and the process will be very slow. That is where the `--generator=shishua` RNG comes in: It's a very fast (approximately 5GiB/s fast) and so can satisfy many more disks.
+
+The catch with the `shishua` generator is that this requires that [the `shishua` CLI tool](https://github.com/espadrine/shishua) is available in `$PATH` and I don't think there are OS distro packages available. When you have made that tool available on $PATH, build disk-spinner with `--features shishua-cli` (and don't forget `--release`!) and it should be used as the default generator. The disk-spinner nix package automatically does everything you need to get the shishua-based generator by default.
+
 ## The name
 
 This tool is for spinning disks; it's also a play on the German word "Spinner" (a goofball), referring to me - a person goofy about disks.
