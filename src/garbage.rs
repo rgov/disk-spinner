@@ -1,5 +1,6 @@
 mod aes;
 mod blake3;
+mod shishua;
 use std::{fmt, io::Read, str::FromStr};
 
 /// The method to use for generating deterministic "garbage" data
@@ -10,6 +11,10 @@ pub enum GarbageGeneratorVariant {
 
     /// The BLAKE3 cryptographic hash function; slightly faster than AES on Apple Silicon hardware.
     Blake3,
+
+    #[cfg(feature = "shishua-cli")]
+    /// The `shishua` RNG, invoked via the cli tool of the same name.
+    ShishuaCli,
 }
 
 impl fmt::Display for GarbageGeneratorVariant {
@@ -17,6 +22,8 @@ impl fmt::Display for GarbageGeneratorVariant {
         match self {
             GarbageGeneratorVariant::Aes => write!(f, "AES"),
             GarbageGeneratorVariant::Blake3 => write!(f, "BLAKE3"),
+            #[cfg(feature = "shishua-cli")]
+            GarbageGeneratorVariant::ShishuaCli => write!(f, "shishua"),
         }
     }
 }
@@ -28,6 +35,10 @@ impl FromStr for GarbageGeneratorVariant {
         match s.to_lowercase().as_str() {
             "aes" => Ok(GarbageGeneratorVariant::Aes),
             "blake3" => Ok(GarbageGeneratorVariant::Blake3),
+
+            #[cfg(feature = "shishua-cli")]
+            "shishua" => Ok(GarbageGeneratorVariant::ShishuaCli),
+
             _ => Err(anyhow::anyhow!("Unknown garbage generator variant {s}")),
         }
     }
@@ -48,6 +59,11 @@ impl GarbageGeneratorVariant {
             GarbageGeneratorVariant::Blake3 => {
                 Box::new(blake3::Blake3Generator::new(block_size, seed, progress))
             }
+            #[cfg(feature = "shishua-cli")]
+            GarbageGeneratorVariant::ShishuaCli => Box::new(
+                shishua::ShishuaCliGenerator::new(seed, progress)
+                    .expect("shishua child process should work"),
+            ),
         }
     }
 }
