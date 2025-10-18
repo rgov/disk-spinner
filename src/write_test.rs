@@ -1,17 +1,17 @@
 //! Running the "write" portion of the test.
 
-use crate::{crypto::GarbageGenerator, PROGRESS_STYLE};
+use crate::{garbage::GarbageGenerator, PROGRESS_STYLE};
 use anyhow::Context;
 use std::{
     fs::OpenOptions,
     io::{self, BufReader, Seek},
     path::Path,
 };
-use tracing::{info_span, Span};
+use tracing::info_span;
 use tracing_indicatif::span_ext::IndicatifSpanExt;
 
-#[tracing::instrument(skip(buffer_size, seed))]
-pub(crate) fn write(dev_path: &Path, buffer_size: usize, seed: u64) -> anyhow::Result<()> {
+#[tracing::instrument(skip(generator))]
+pub(crate) fn write(dev_path: &Path, generator: Box<dyn GarbageGenerator>) -> anyhow::Result<()> {
     let mut out = OpenOptions::new()
         .write(true)
         .open(dev_path)
@@ -24,9 +24,6 @@ pub(crate) fn write(dev_path: &Path, buffer_size: usize, seed: u64) -> anyhow::R
     bar_span.pb_set_length(capacity);
     let _bar_span_handle = bar_span.enter();
 
-    let generator = GarbageGenerator::new(buffer_size, seed, |read| {
-        Span::current().pb_inc(read);
-    });
     let mut generator = BufReader::new(generator);
     match io::copy(&mut generator, &mut out) {
         Ok(_) => Ok(()),

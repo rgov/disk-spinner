@@ -26,13 +26,18 @@
         ...
       }: let
         cIncludes =
-          if (! pkgs.stdenv.isDarwin)
+          if (!pkgs.stdenv.isDarwin)
           then [pkgs.udev]
           else [];
         cLibs =
-          if pkgs.stdenv.isDarwin
-          then [pkgs.libiconv]
-          else [];
+          cIncludes
+          ++ (
+            if pkgs.stdenv.isDarwin
+            then [
+              pkgs.libiconv
+            ]
+            else []
+          );
       in {
         formatter = pkgs.alejandra;
 
@@ -42,16 +47,14 @@
             inherit (fenix.packages.${system}.stable) rustc cargo;
           };
           nativeBuildInputs =
-            (builtins.map (l: pkgs.lib.getDev l) cIncludes)
-            ++ cIncludes
-            ++ cLibs
-            ++ [pkgs.pkg-config];
+            (builtins.map (l: pkgs.lib.getDev l) cIncludes) ++ cIncludes ++ cLibs ++ [pkgs.pkg-config];
         in
           rustPlatform.buildRustPackage {
             pname = "disk-spinner";
             version = (builtins.fromTOML (builtins.readFile ./Cargo.toml)).package.version;
-            inherit nativeBuildInputs;
+            nativeBuildInputs = nativeBuildInputs ++ [pkgs.makeBinaryWrapper];
             buildInputs = nativeBuildInputs;
+            buildFeatures = ["shishua-cli"];
             src = let
               fs = pkgs.lib.fileset;
             in
@@ -63,10 +66,26 @@
                   ./src
                 ];
               };
+
+            postInstall = ''
+              wrapProgram $out/bin/disk-spinner \
+                  --prefix PATH : ${pkgs.lib.makeBinPath [config.packages.shishua]} \
+                  --prefix LD_LIBRARY_PATH : ${pkgs.lib.escapeShellArg (pkgs.lib.makeLibraryPath cLibs)}
+            '';
             doCheck = false; # The sandbox blocks io_uring, which makes testing this program impossible.
             cargoLock.lockFile = ./Cargo.lock;
             meta.mainProgram = "disk-spinner";
           };
+        packages.shishua = pkgs.stdenv.mkDerivation {
+          pname = "shishua";
+          version = "0.0.0";
+          src = inputs.shishua;
+          installPhase = ''
+            mkdir -p $out/bin
+            mv shishua $out/bin/shishua
+          '';
+          meta.mainProgram = "shishua";
+        };
 
         apps = {
           default = config.apps.disk-spinner;
@@ -83,7 +102,13 @@
             language.rust = {
               enableDefaultToolchain = false;
               packageSet = fenix.packages.${system}.stable;
-              tools = ["rust-analyzer" "cargo" "clippy" "rustfmt" "rustc"];
+              tools = [
+                "rust-analyzer"
+                "cargo"
+                "clippy"
+                "rustfmt"
+                "rustc"
+              ];
             };
 
             language.c.includes = cIncludes;
@@ -106,6 +131,10 @@
     fenix = {
       url = "github:nix-community/fenix";
       inputs.nixpkgs.follows = "nixpkgs";
+    };
+    shishua = {
+      url = "github:espadrine/shishua";
+      flake = false;
     };
   };
 }

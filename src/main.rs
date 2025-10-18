@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use anyhow::Context;
 use clap::Parser;
+use garbage::GarbageGeneratorVariant;
 use indicatif::ProgressStyle;
 use rand::prelude::*;
 use rand::rng;
@@ -9,6 +10,8 @@ use rayon::iter::Either;
 use rayon::prelude::*;
 use tracing::error;
 use tracing::info;
+use tracing::Span;
+use tracing_indicatif::span_ext::IndicatifSpanExt as _;
 use tracing_indicatif::IndicatifLayer;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
@@ -16,7 +19,7 @@ use tracing_subscriber::util::SubscriberInitExt;
 #[macro_use]
 extern crate lazy_static;
 
-mod crypto;
+mod garbage;
 mod read_test;
 mod write_test;
 
@@ -48,6 +51,9 @@ pub(crate) struct Args {
     /// Defaults to the physical block size of the device (or 8192 if that is unset).
     #[clap(long)]
     buffer_size: Option<usize>,
+
+    #[clap(long, default_value_t, value_parser = clap::value_parser!(GarbageGeneratorVariant))]
+    generator: GarbageGeneratorVariant,
 
     /// Random seed to use for generating random data. By default, this tool generates its own.
     #[clap(long)]
@@ -91,10 +97,15 @@ fn main() -> anyhow::Result<()> {
         sanity_checks(&args, partition, &path, &device)?;
 
         info!(?seed, ?partition, ?device, ?path, "Starting test");
-
-        write_test::write(&path, buffer_size, seed).context("During write test")?;
+        let write_generator = args.generator.to_generator(buffer_size, seed, Box::new(|read| {
+            Span::current().pb_inc(read);
+        }));
+        write_test::write(&path, write_generator).context("During write test")?;
         info!(device=?path, "write test succeeded");
-        match read_test::read_back(&path, buffer_size, seed).context("During read test")? {
+        let read_generator = args.generator.to_generator(buffer_size, seed, Box::new(|read| {
+            Span::current().pb_inc(read);
+        }));
+        match read_test::read_back(&path, read_generator).context("During read test")? {
             Ok(_) => {
                 info!(device=?path, "read-back test succeeded");
                 Ok(Either::Left(()))
