@@ -76,16 +76,28 @@
             cargoLock.lockFile = ./Cargo.lock;
             meta.mainProgram = "disk-spinner";
           };
-        packages.shishua = pkgs.stdenv.mkDerivation {
-          pname = "shishua";
-          version = "0.0.0";
-          src = inputs.shishua;
-          installPhase = ''
-            mkdir -p $out/bin
-            mv shishua $out/bin/shishua
-          '';
-          meta.mainProgram = "shishua";
-        };
+
+        packages.shishua = pkgs.stdenv.mkDerivation (
+          let
+            shishua =
+              # Requires AVX2 or neon intrinsics to be fast, so let's mandate them:
+              if (pkgs.lib.hasPrefix "x86_64-" system)
+              then "shishua-avx2"
+              else if (pkgs.lib.hasPrefix "aarch64-" system)
+              then "shishua-neon"
+              else "shishua";
+          in {
+            pname = "shishua";
+            version = "0.0.0";
+            src = inputs.shishua;
+            makeFlags = shishua;
+            installPhase = ''
+              mkdir -p $out/bin
+              mv ${shishua} $out/bin/shishua
+            '';
+            meta.mainProgram = "shishua";
+          }
+        );
 
         apps = {
           default = config.apps.disk-spinner;
