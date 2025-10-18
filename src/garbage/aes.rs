@@ -13,14 +13,13 @@ type ActiveCipher = ctr::Ctr128LE<aes::Aes128>;
 pub(crate) struct AesGenerator {
     buf: Vec<u8>,
     cipher: ActiveCipher,
-    progress: Box<dyn Fn(u64)>,
 }
 
 impl GarbageGenerator for AesGenerator {}
 
 impl AesGenerator {
     /// Generate a new AES garbage generator for a block size from a random seed.
-    pub(super) fn new(block_size: usize, seed: u64, progress: Box<dyn Fn(u64)>) -> Self {
+    pub(super) fn new(block_size: usize, seed: u64) -> Self {
         let buf = vec![0; block_size];
 
         let mut rng = ChaCha8Rng::seed_from_u64(seed);
@@ -30,11 +29,7 @@ impl AesGenerator {
         rng.fill_bytes(&mut iv);
         let cipher = ActiveCipher::new(&key.into(), &iv.into());
 
-        Self {
-            buf,
-            cipher,
-            progress,
-        }
+        Self { buf, cipher }
     }
 }
 
@@ -49,7 +44,6 @@ impl io::Read for AesGenerator {
                 .map_err(|e| io::Error::other(format!("crypto error {e:?}")))?;
             done += chunk.len();
         }
-        (self.progress)(done.try_into().unwrap());
         Ok(done)
     }
 }
