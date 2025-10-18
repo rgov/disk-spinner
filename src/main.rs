@@ -14,8 +14,6 @@ use rayon::iter::Either;
 use rayon::prelude::*;
 use tracing::error;
 use tracing::info;
-use tracing::Span;
-use tracing_indicatif::span_ext::IndicatifSpanExt as _;
 use tracing_indicatif::IndicatifLayer;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
@@ -31,6 +29,8 @@ mod linux;
 #[cfg(target_os = "linux")]
 use linux::sanity_checks;
 #[cfg(target_os = "linux")]
+use linux::IOBuffer;
+#[cfg(target_os = "linux")]
 use linux::ValidDevice;
 #[cfg(target_os = "linux")]
 use linux::OPEN_FLAGS;
@@ -39,6 +39,8 @@ use linux::OPEN_FLAGS;
 mod other_os;
 #[cfg(not(target_os = "linux"))]
 use other_os::sanity_checks;
+#[cfg(not(target_os = "linux"))]
+use other_os::IOBuffer;
 #[cfg(not(target_os = "linux"))]
 use other_os::ValidDevice;
 #[cfg(not(target_os = "linux"))]
@@ -105,15 +107,11 @@ fn main() -> anyhow::Result<()> {
         sanity_checks(&args, partition, &path, &device)?;
 
         info!(?seed, ?partition, ?device, ?path, "Starting test");
-        let write_generator = args.generator.to_generator(buffer_size, seed, Box::new(|read| {
-            Span::current().pb_inc(read);
-        }));
-        write_test::write(&path, write_generator).context("During write test")?;
-        info!(device=?path, "write test succeeded");
-        let read_generator = args.generator.to_generator(buffer_size, seed, Box::new(|read| {
-            Span::current().pb_inc(read);
-        }));
-        match read_test::read_back(&path, read_generator).context("During read test")? {
+        let write_generator = args.generator.to_generator(buffer_size, seed);
+        let written = write_test::write(&path, write_generator, buffer_size).context("During write test")?;
+        info!(device=?path, %written, "write test succeeded");
+        let read_generator = args.generator.to_generator(buffer_size, seed);
+        match read_test::read_back(&path, read_generator, buffer_size, written).context("During read test")? {
             Ok(_) => {
                 info!(device=?path, "read-back test succeeded");
                 Ok(Either::Left(()))
@@ -143,5 +141,5 @@ pub(crate) fn determine_size(dev_path: &Path) -> anyhow::Result<u64> {
         .read(true)
         .open(dev_path)
         .with_context(|| format!("Opening the device {dev_path:?} for determining the size"))?;
-    Ok(out.seek(io::SeekFrom::End(0)).context("seeking to end")?)
+    out.seek(io::SeekFrom::End(0)).context("seeking to end")
 }

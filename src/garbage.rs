@@ -48,23 +48,15 @@ impl FromStr for GarbageGeneratorVariant {
 
 impl GarbageGeneratorVariant {
     /// Create a new garbage generator for the specified type. You need one for each write step and each read step, per device.
-    pub fn to_generator(
-        self,
-        block_size: usize,
-        seed: u64,
-        progress: Box<dyn Fn(u64)>,
-    ) -> Box<dyn GarbageGenerator> {
+    pub fn to_generator(self, block_size: usize, seed: u64) -> Box<dyn GarbageGenerator> {
         match self {
-            GarbageGeneratorVariant::Aes => {
-                Box::new(aes::AesGenerator::new(block_size, seed, progress))
-            }
+            GarbageGeneratorVariant::Aes => Box::new(aes::AesGenerator::new(block_size, seed)),
             GarbageGeneratorVariant::Blake3 => {
-                Box::new(blake3::Blake3Generator::new(block_size, seed, progress))
+                Box::new(blake3::Blake3Generator::new(block_size, seed))
             }
             #[cfg(feature = "shishua-cli")]
             GarbageGeneratorVariant::ShishuaCli => Box::new(
-                shishua::ShishuaCliGenerator::new(seed, progress)
-                    .expect("shishua child process should work"),
+                shishua::ShishuaCliGenerator::new(seed).expect("shishua child process should work"),
             ),
         }
     }

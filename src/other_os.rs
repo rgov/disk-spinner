@@ -3,9 +3,13 @@ use std::{
     str::FromStr,
 };
 
+use aligned_buffer::UniqueAlignedBuffer;
+
 use crate::Args;
 
 pub const OPEN_FLAGS: i32 = 0;
+
+pub type IOBuffer = UniqueAlignedBuffer<1>;
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct DeviceMetadata {

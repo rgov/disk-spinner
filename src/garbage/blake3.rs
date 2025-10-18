@@ -9,14 +9,13 @@ pub struct Blake3Generator {
     buf: Vec<u8>,
     hasher: blake3::Hasher,
     lba: usize,
-    progress: Box<dyn Fn(u64)>,
 }
 
 impl GarbageGenerator for Blake3Generator {}
 
 impl Blake3Generator {
     /// Generate a new Blake3 garbage generator for a block size from a random seed.
-    pub(super) fn new(block_size: usize, seed: u64, progress: Box<dyn Fn(u64)>) -> Self {
+    pub(super) fn new(block_size: usize, seed: u64) -> Self {
         let buf = vec![0; block_size];
 
         let mut rng = ChaCha8Rng::seed_from_u64(seed);
@@ -28,7 +27,6 @@ impl Blake3Generator {
             buf,
             hasher,
             lba: 0,
-            progress,
         }
     }
 }
@@ -48,7 +46,6 @@ impl io::Read for Blake3Generator {
             done += length;
             self.lba += 1;
         }
-        (self.progress)(done.try_into().unwrap());
         Ok(done)
     }
 }

@@ -1,11 +1,14 @@
 extern crate block_utils;
 use super::child_partitions;
 use crate::Args;
+use aligned_buffer::UniqueAlignedBuffer;
 use std::{
     path::{Path, PathBuf},
     str::FromStr,
 };
 use tracing::warn;
+
+pub type IOBuffer = UniqueAlignedBuffer<4096>;
 
 pub const OPEN_FLAGS: i32 = libc::O_DIRECT;
 

@@ -14,6 +14,7 @@ shishua-cli = []
 
 [dependencies]
 aes = "0.8.4"
+aligned-buffer = "0.2.0"
 anyhow = "1.0.99"
 blake3 = "1.8.2"
 clap = { version = "4.5.45", features = ["derive"] }
