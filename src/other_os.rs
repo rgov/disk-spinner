@@ -7,7 +7,7 @@ use aligned_buffer::UniqueAlignedBuffer;
 
 use crate::Args;
 
-pub const OPEN_FLAGS: i32 = 0;
+pub const OPEN_FLAGS: i32 = libc::O_EXCL;
 
 pub type IOBuffer = UniqueAlignedBuffer<1>;
 

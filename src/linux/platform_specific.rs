@@ -10,7 +10,7 @@ use tracing::warn;
 
 pub type IOBuffer = UniqueAlignedBuffer<4096>;
 
-pub const OPEN_FLAGS: i32 = libc::O_DIRECT;
+pub const OPEN_FLAGS: i32 = libc::O_DIRECT | libc::O_EXCL;
 
 #[derive(Debug, Clone)]
 pub(crate) struct ValidDevice {
