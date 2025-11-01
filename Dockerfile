@@ -26,6 +26,11 @@ RUN cargo build --release --locked
 
 FROM debian:trixie-slim
 
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+    libudev1 \
+ && rm -rf /var/lib/apt/lists/*
+
 COPY --from=builder /app/target/release/disk-spinner /usr/local/bin/disk-spinner
 
 ENTRYPOINT ["/usr/local/bin/disk-spinner"]
